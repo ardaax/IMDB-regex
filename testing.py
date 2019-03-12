@@ -12,7 +12,20 @@ starsdict = dict()
 directordict = dict()
 production_yeardict = dict()    # Keeps production year of all movies
 release_datedict = dict()
+datetime_objectdict = dict()    # Same as release_datedict but keeps it as datetime
 
+'''
+Get a list of keys from dictionary which has the given value
+'''
+def getKeysByValue(dictOfElements, valueToFind):
+    listOfKeys = list()
+    listOfItems = dictOfElements.items()
+    for item in listOfItems:
+        if item[1] == valueToFind:
+            listOfKeys.append(item[0])
+    return listOfKeys
+
+# GETS ALL INFO ABOUT MOVIE AFTER INPUT
 def getmovies(alltext):
     filmspat = re.compile(r'.+[ ][(]\d{4}[)]\s')  # Matches movie names.
     movies = filmspat.findall(alltext)
@@ -23,7 +36,6 @@ def getmovies(alltext):
 
     datespat = re.compile(r"[A-Z][a-z]+[ ]\d\d?\xa0")   #GETS DATES
     dates = datespat.findall(alltext)
-
 
 
     # GETS RELEASE YEAR
@@ -63,6 +75,8 @@ def getmovies(alltext):
         # date_obj = date_obj.replace("\xa0","")
         date_obj = (datetime.datetime.strptime(date_obj, "%Y-%m-%d"))
         #print(date_obj)
+        #stripped_date_obj = date_obj[:-8]
+        #print(stripped_date_obj)
 
         release_date = str(date_obj)[:-9]  # Strip away the time
 
@@ -71,24 +85,28 @@ def getmovies(alltext):
         for mov in movies:
             if mov in date_text:  # If the movie is in the date range
                 release_datedict[mov[1:-8]] = release_date  # add the release dates as a str
+                datetime_objectdict[mov[1:-8]] = date_obj
 
+
+  
 
     for i in range(len(dates)-1):   # Loop through month-days except last element
         dateformat(i,1)
+
     dateformat(len(dates)-1, 0) # last element
 
-    print(release_datedict.keys())
-    print(release_datedict.values())
+    #print(release_datedict.keys())
+    #print(release_datedict.values())
 
 
     # THIS PART LOOKS FOR ALL THE RELEVANT TEXT FOR EACH MOVIE AND FILLS THE DICTS
 
     for mov in filmspat.findall(alltext):
-        print(mov)
+        #print(mov)
 
         prod_year = mov[-6:-2]  # Prodcution year
         production_yeardict[mov[1:-8]] = "Production year: " + prod_year
-        print(production_yeardict[mov[1:-8]])
+        #print(production_yeardict[mov[1:-8]])
 
 
         my_regex = re.escape(mov) + r".+?(?=if \(typeof)"  # Gets all info about movie from all text
@@ -121,7 +139,7 @@ def getmovies(alltext):
         stars = ([i.replace("\n", "") for i in stars])
 
         strstar = ",".join(stars)
-        print(strstar)
+        #print(strstar)
         starsdict[mov[1:-8]] = strstar
 
 
@@ -136,7 +154,7 @@ def getmovies(alltext):
         strgenre = strgenre.replace(",Metascore", "")
 
         genresdict[mov[1:-8]] = strgenre
-        print(genresdict.get(mov[1:-8]))
+        #print(genresdict.get(mov[1:-8]))
 
 
         #Director part
@@ -151,10 +169,10 @@ def getmovies(alltext):
         strdirector = strdirector.replace("|", ",")
         strdirector = strdirector.strip()
         directordict[mov[1:-8]] = strdirector
-        print(strdirector)
+        #print(strdirector)
 
 
-        print("\n\tNEW MOVIE\n")
+        #print("\n\tNEW MOVIE\n")
 
 
 def info(movie):    # GETS ALL INFO ABOUT MOVIE
@@ -201,7 +219,7 @@ def listgenre(genres):
     for matches in matched_mov:
         print(matches)
 
-#def listfrom(date):
+
 
 def listmovies(alltext):
     # List all movie names.
@@ -213,9 +231,10 @@ def main():
     #parser.add_argument('file', type=argparse.FileType('r'), nargs='+')
     #getmovies(alltext)
     #info('Shazam!')
-    print("\n")
+    #print("\n")
     #info("Avengers: Endgame")
-    listgenre("Action,Sci-Fi")
+    #listgenre("Action,Sci-Fi")
+
 
 
     while True:
@@ -224,17 +243,60 @@ def main():
         command = user_input.split(" ")
         if command[0] == "INPUT":   # Read the file
             path = command[1]
-            print(path)
-            fin = open("april_coming.txt", "r")
+            #print(path)
+
+            fin = open(path, "r", encoding="ISO-8859-1")
             alltext = fin.read()
             getmovies(alltext)
-            listmovies(alltext)
+
+
 
         if user_input == "LIST":
             listmovies(alltext)
 
         if command[0] == "INFO":
-            info(command[1])
+            movname = user_input.replace("INFO ", "")
+            info(movname)
+
+        if "from" in user_input and "to" in user_input:
+            fromreg = re.search("from", user_input)
+            fromreg = fromreg.group(0)
+            toreg = re.search("to", user_input)
+            toreg = toreg.group(0)
+            frompart = command[1]
+            topart = command[2]
+
+            frompart = frompart.replace("from:", "")
+            topart = topart.replace("to:", "")
+
+            matched_mov = list()
+            #moviekeys = getKeysByValue(release_datedict, frompart) # Gets keys out of values in dict.
+
+
+            fromdatetime = (datetime.datetime.strptime(frompart, "%Y-%m-%d"))   # Convert fromdatetime to datetime
+            todatetime = (datetime.datetime.strptime(topart, "%Y-%m-%d"))
+
+
+            for mov in datetime_objectdict: # For every movie if datetime of that movie is in range of our from and to
+                if datetime_objectdict[mov] >= fromdatetime and datetime_objectdict[mov] <= todatetime:
+                    print(mov)
+
+
+        if "from" in user_input and 'to' not in user_input:
+            fromreg = re.search("from", user_input)
+            fromreg = fromreg.group(0)
+            frompart = command[1]
+            frompart = frompart.replace("from:", "")
+
+            fromdatetime = (datetime.datetime.strptime(frompart, "%Y-%m-%d"))   # Convert fromdatetime to datetime
+            for mov in datetime_objectdict:
+                if datetime_objectdict[mov] >= fromdatetime:
+                    print(mov)
+
+        if user_input.startswith("LIST genre:"):
+            refactoredinput = user_input.replace("LIST genre:", "")
+            listgenre(refactoredinput)
+
 
 
 
